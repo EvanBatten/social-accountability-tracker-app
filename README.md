@@ -4,9 +4,9 @@ A modern web application for tracking habits and goals with social accountabilit
 
 ## 🌐 Live Demo
 
-**Try the app live:** [https://your-app-name.vercel.app](https://test-five-pi-11.vercel.app/)
+**Try the app live:** [https://test-five-pi-11.vercel.app/](https://test-five-pi-11.vercel.app/)
 
-> ⚠️ **Note:** Replace `your-app-name` with your actual Vercel app name in the URL above.
+
 
 ## 🚀 Features
 
@@ -111,7 +111,6 @@ NEXT_PUBLIC_CONVEX_URL=your_convex_deployment_url_here
 
 This app is already deployed on Vercel! 🚀
 
-**Live URL:** [https://your-app-name.vercel.app](https://your-app-name.vercel.app)
 
 ### Deploy Your Own Copy
 
