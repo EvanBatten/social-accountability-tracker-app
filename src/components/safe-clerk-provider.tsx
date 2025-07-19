@@ -1,11 +1,11 @@
 import type * as React from "react"
-import { ClerkProvider, type ClerkProviderProps } from "@clerk/nextjs"
+import { ClerkProvider } from "@clerk/nextjs"
 
 /**
  * A wrapper around ClerkProvider that prevents runtime crashes
  * when NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not configured.
  */
-export function SafeClerkProvider({ children, ...rest }: ClerkProviderProps & { children: React.ReactNode }) {
+export function SafeClerkProvider({ children, ...rest }: { children: React.ReactNode; [key: string]: any }) {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
   if (!publishableKey) {
