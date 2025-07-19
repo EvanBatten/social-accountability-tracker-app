@@ -2,10 +2,6 @@
 
 A modern web application for tracking habits and goals with social accountability, built with Next.js, Clerk authentication, and Convex database.
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-View%20App-blue?style=for-the-badge&logo=vercel)](https://your-app-name.vercel.app)
-[![Deploy on Vercel](https://img.shields.io/badge/Deploy%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/new/clone?repository-url=https://github.com/EvanBatten/test)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-
 ## 🌐 Live Demo
 
 **Try the app live:** [https://your-app-name.vercel.app](https://your-app-name.vercel.app)
@@ -23,19 +19,11 @@ A modern web application for tracking habits and goals with social accountabilit
 
 ## 🛠️ Tech Stack
 
-![Next.js](https://img.shields.io/badge/Next.js-15.4.1-black?style=flat-square&logo=next.js)
-![React](https://img.shields.io/badge/React-19.1.0-blue?style=flat-square&logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue?style=flat-square&logo=typescript)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1.11-38B2AC?style=flat-square&logo=tailwind-css)
-![Clerk](https://img.shields.io/badge/Clerk-Authentication-6C47FF?style=flat-square)
-![Convex](https://img.shields.io/badge/Convex-Database-00D4AA?style=flat-square)
-![Vercel](https://img.shields.io/badge/Vercel-Deployment-black?style=flat-square&logo=vercel)
-
-**Frontend:** Next.js 15, React 19, TypeScript  
-**Authentication:** Clerk  
-**Database:** Convex  
-**Styling:** Tailwind CSS, Radix UI  
-**Deployment:** Vercel
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Authentication**: Clerk
+- **Database**: Convex
+- **Styling**: Tailwind CSS, Radix UI
+- **Deployment**: Vercel
 
 ## 📋 Prerequisites
 
