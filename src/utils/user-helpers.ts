@@ -1,5 +1,3 @@
-import { useUser } from "@clerk/nextjs";
-
 // Get display name for a user ID
 export function getUserDisplayName(userId: string, currentUser: any): string {
   // If it's the current user, show their name

@@ -56,7 +56,7 @@ export default function ChallengeDetailPage() {
         challengeId: challengeId as any,
         userId: user.id,
         date: today,
-        status: todayStatus as any,
+        status: todayStatus as "completed" | "partial" | "missed",
         note: todayNote || undefined,
       })
 
