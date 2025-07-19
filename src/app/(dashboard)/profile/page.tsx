@@ -6,53 +6,46 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useUser } from "@clerk/nextjs"
 import { Calendar, Trophy, TrendingUp, Users, CheckCircle, Flame, Star, Award, Plus } from "lucide-react"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Challenge, UserStats } from "@/types"
+import { LoadingSpinner } from "@/components/ui/loading"
+import Link from "next/link"
 
-// Mock data - replace with Convex queries
-const userStats = {
-  totalChallenges: 12,
-  completedChallenges: 8,
-  activeChallenges: 3,
-  longestStreak: 30,
-  currentStreak: 12,
-  totalDays: 156,
-  successRate: 78,
-  badges: [
-    { name: "First Challenge", icon: "🏁", description: "Completed your first challenge" },
-    { name: "Streak Master", icon: "🔥", description: "Maintained a 30-day streak" },
-    { name: "Community Helper", icon: "🤝", description: "Helped 10 people stay motivated" },
-    { name: "Early Bird", icon: "🌅", description: "Completed 30 morning challenges" },
-  ],
-}
-
-const recentChallenges = [
-  {
-    id: "1",
-    title: "Morning Workout Routine",
-    status: "active",
-    progress: 40,
-    streak: 12,
-    role: "creator",
-  },
-  {
-    id: "2",
-    title: "Daily Journaling",
-    status: "active",
-    progress: 38,
-    streak: 8,
-    role: "participant",
-  },
-  {
-    id: "3",
-    title: "30-Day Water Challenge",
-    status: "completed",
-    progress: 100,
-    finalStreak: 28,
-    role: "participant",
-  },
+// Badge definitions
+const badgeDefinitions = [
+  { name: "First Challenge", icon: "🏁", description: "Completed your first challenge", condition: (stats: UserStats) => stats.totalChallenges >= 1 },
+  { name: "Streak Master", icon: "🔥", description: "Maintained a 30-day streak", condition: (stats: UserStats) => stats.longestStreak >= 30 },
+  { name: "Consistent Achiever", icon: "⭐", description: "Achieved 80%+ success rate", condition: (stats: UserStats) => stats.successRate >= 80 },
+  { name: "Active Participant", icon: "🤝", description: "Participated in 5+ challenges", condition: (stats: UserStats) => stats.totalChallenges >= 5 },
 ]
 
 export default function ProfilePage() {
   const { user } = useUser()
+  const userId = user?.id
+
+  // Fetch real data from Convex
+  const userStats = useQuery(api.users.getUserDashboardStats, userId ? { userId } : "skip") as UserStats | undefined
+  const userChallenges = useQuery(api.challenges.getUserParticipatingChallenges, userId ? { userId } : "skip") as Challenge[] | undefined
+
+  // Separate active and completed challenges
+  const activeChallenges = userChallenges?.filter((challenge: Challenge) => {
+    const endDate = new Date(challenge.endDate)
+    return endDate > new Date()
+  }) || []
+
+  const completedChallenges = userChallenges?.filter((challenge: Challenge) => {
+    const endDate = new Date(challenge.endDate)
+    return endDate <= new Date()
+  }) || []
+
+  // Get earned badges based on user stats
+  const earnedBadges = userStats ? badgeDefinitions.filter(badge => badge.condition(userStats)) : []
+
+  // Show loading if user data is not available
+  if (!user || !userStats) {
+    return <LoadingSpinner />
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -78,10 +71,10 @@ export default function ProfilePage() {
                     ? new Date(user.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })
                     : "Recently"}
                 </p>
-                <div className="flex items-center space-x-4">
-                  <Badge className="bg-blue-100 text-blue-800">Level {Math.floor(userStats.totalDays / 30) + 1}</Badge>
-                  <span className="text-sm text-gray-700">{userStats.totalDays} total active days</span>
-                </div>
+                            <div className="flex items-center space-x-4">
+              <Badge className="bg-blue-100 text-blue-800">Level {Math.floor((userStats.totalDays || 0) / 30) + 1}</Badge>
+              <span className="text-sm text-gray-700">{userStats.totalDays || 0} total active days</span>
+            </div>
               </div>
             </div>
           </CardContent>
@@ -96,8 +89,8 @@ export default function ProfilePage() {
             <Trophy className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{userStats.totalChallenges}</div>
-            <p className="text-xs text-gray-700">{userStats.completedChallenges} completed</p>
+            <div className="text-2xl font-bold text-gray-900">{userStats.totalChallenges || 0}</div>
+            <p className="text-xs text-gray-700">{completedChallenges.length} completed</p>
           </CardContent>
         </Card>
 
@@ -107,7 +100,7 @@ export default function ProfilePage() {
             <Flame className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{userStats.longestStreak}</div>
+            <div className="text-2xl font-bold text-gray-900">{userStats.longestStreak || 0}</div>
             <p className="text-xs text-gray-700">days in a row</p>
           </CardContent>
         </Card>
@@ -118,7 +111,7 @@ export default function ProfilePage() {
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{userStats.successRate}%</div>
+            <div className="text-2xl font-bold text-gray-900">{userStats.successRate || 0}%</div>
             <p className="text-xs text-gray-700">completion rate</p>
           </CardContent>
         </Card>
@@ -129,7 +122,7 @@ export default function ProfilePage() {
             <Calendar className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{userStats.currentStreak}</div>
+            <div className="text-2xl font-bold text-gray-900">{userStats.currentStreak || 0}</div>
             <p className="text-xs text-gray-700">days active</p>
           </CardContent>
         </Card>
@@ -145,40 +138,51 @@ export default function ProfilePage() {
               <CardDescription className="text-gray-700">Your latest challenge activity and progress</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentChallenges.map((challenge) => (
-                <div key={challenge.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-medium text-gray-900">{challenge.title}</h3>
-                      {challenge.role === "creator" && (
-                        <Badge variant="outline" className="text-xs">
-                          Creator
-                        </Badge>
-                      )}
-                      <Badge variant={challenge.status === "completed" ? "default" : "secondary"} className="text-xs">
-                        {challenge.status === "completed" ? "Completed" : "Active"}
-                      </Badge>
+              {userChallenges && userChallenges.length > 0 ? (
+                userChallenges.slice(0, 5).map((challenge: Challenge) => {
+                  const isActive = new Date(challenge.endDate) > new Date()
+                  const isCreator = challenge.createdBy === userId
+                  return (
+                    <div key={challenge._id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-medium text-gray-900">{challenge.title}</h3>
+                          {isCreator && (
+                            <Badge variant="outline" className="text-xs">
+                              Creator
+                            </Badge>
+                          )}
+                          <Badge variant={isActive ? "secondary" : "default"} className="text-xs">
+                            {isActive ? "Active" : "Completed"}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-gray-700">
+                          <span>{challenge.category}</span>
+                          <span className="flex items-center space-x-1">
+                            <Users className="h-3 w-3" />
+                            <span>{challenge.participants.length} participants</span>
+                          </span>
+                        </div>
+                      </div>
+                      <Link href={`/challenges/${challenge._id}`}>
+                        <Button variant="outline" size="sm">
+                          View Details
+                        </Button>
+                      </Link>
                     </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-700">
-                      <span>{challenge.progress}% complete</span>
-                      {challenge.status === "active" ? (
-                        <span className="flex items-center space-x-1">
-                          <Flame className="h-3 w-3 text-orange-500" />
-                          <span>{challenge.streak} day streak</span>
-                        </span>
-                      ) : (
-                        <span className="flex items-center space-x-1">
-                          <CheckCircle className="h-3 w-3 text-green-600" />
-                          <span>{challenge.finalStreak} day final streak</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    View Details
-                  </Button>
+                  )
+                })
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-700">No challenges yet. Start your first challenge!</p>
+                  <Link href="/challenges/create" className="mt-4 inline-block">
+                    <Button className="mt-2">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Challenge
+                    </Button>
+                  </Link>
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
 
@@ -189,35 +193,23 @@ export default function ProfilePage() {
               <CardDescription className="text-gray-700">Your latest milestones and accomplishments</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+              {earnedBadges.length > 0 ? (
+                earnedBadges.slice(0, 3).map((badge, index) => (
+                  <div key={index} className="flex items-center space-x-4">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-lg">{badge.icon}</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Earned "{badge.name}" badge</p>
+                      <p className="text-sm text-gray-700">{badge.description}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-gray-700">No achievements yet. Start participating in challenges to earn badges!</p>
                 </div>
-                <div>
-                  <p className="font-medium text-gray-900">Completed "30-Day Water Challenge"</p>
-                  <p className="text-sm text-gray-700">January 10, 2024</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                  <Flame className="h-5 w-5 text-orange-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Achieved 30-day streak milestone</p>
-                  <p className="text-sm text-gray-700">December 28, 2023</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Users className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Created your first public challenge</p>
-                  <p className="text-sm text-gray-700">December 15, 2023</p>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -234,15 +226,21 @@ export default function ProfilePage() {
               <CardDescription className="text-gray-700">Recognition for your achievements</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {userStats.badges.map((badge, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <div className="text-2xl">{badge.icon}</div>
-                  <div>
-                    <p className="font-medium text-sm text-gray-900">{badge.name}</p>
-                    <p className="text-xs text-gray-700">{badge.description}</p>
+              {earnedBadges.length > 0 ? (
+                earnedBadges.map((badge, index) => (
+                  <div key={index} className="flex items-center space-x-3">
+                    <div className="text-2xl">{badge.icon}</div>
+                    <div>
+                      <p className="font-medium text-sm text-gray-900">{badge.name}</p>
+                      <p className="text-xs text-gray-700">{badge.description}</p>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-gray-700 text-sm">No badges earned yet. Keep participating in challenges!</p>
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
 
@@ -252,18 +250,24 @@ export default function ProfilePage() {
               <CardTitle className="text-gray-900">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full justify-start" variant="outline">
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Challenge
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Users className="h-4 w-4 mr-2" />
-                Invite Friends
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <TrendingUp className="h-4 w-4 mr-2" />
-                View Analytics
-              </Button>
+              <Link href="/challenges/create" className="w-full">
+                <Button className="w-full justify-start" variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Challenge
+                </Button>
+              </Link>
+              <Link href="/dashboard" className="w-full">
+                <Button className="w-full justify-start" variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  Browse Challenges
+                </Button>
+              </Link>
+              <Link href="/dashboard/my-challenges" className="w-full">
+                <Button className="w-full justify-start" variant="outline">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  My Challenges
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

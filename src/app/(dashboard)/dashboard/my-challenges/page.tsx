@@ -6,57 +6,30 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Clock, TrendingUp, CheckCircle, Plus, Calendar, Users, Target, Flame } from "lucide-react"
 import Link from "next/link"
-
-// Mock data - replace with Convex queries
-const activeChallenges = [
-  {
-    id: "1",
-    title: "30-Day Morning Meditation",
-    description: "Start each day with mindfulness and inner peace",
-    category: "Wellness & Mindfulness",
-    progress: 40,
-    currentStreak: 12,
-    totalDays: 30,
-    participants: 24,
-    endDate: "2024-01-30",
-    role: "creator",
-  },
-  {
-    id: "2",
-    title: "Daily Journaling Challenge",
-    description: "Write 500 words every day to improve writing skills",
-    category: "Learning & Skills",
-    progress: 38,
-    currentStreak: 8,
-    totalDays: 21,
-    participants: 15,
-    endDate: "2024-01-21",
-    role: "participant",
-  },
-]
-
-const completedChallenges = [
-  {
-    id: "3",
-    title: "30-Day Water Challenge",
-    description: "Drink 8 glasses of water daily",
-    category: "Health & Fitness",
-    finalStreak: 28,
-    totalDays: 30,
-    participants: 45,
-    completionDate: "2023-12-15",
-    role: "participant",
-  },
-]
-
-const userStats = {
-  activeChallenges: 2,
-  completedChallenges: 8,
-  currentStreak: 12,
-  totalChallenges: 10,
-}
+import { useUser } from "@clerk/nextjs"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Challenge, UserStats } from "@/types"
 
 export default function MyChallengesPage() {
+  const { user } = useUser()
+  const userId = user?.id
+
+  // Fetch real data from Convex
+  const userChallenges = useQuery(api.challenges.getUserParticipatingChallenges, userId ? { userId } : "skip") as Challenge[] | undefined
+  const userStats = useQuery(api.users.getUserDashboardStats, userId ? { userId } : "skip") as UserStats | undefined
+
+  // Separate active and completed challenges
+  const activeChallenges = userChallenges?.filter((challenge: Challenge) => {
+    const endDate = new Date(challenge.endDate)
+    return endDate > new Date()
+  }) || []
+
+  const completedChallenges = userChallenges?.filter((challenge: Challenge) => {
+    const endDate = new Date(challenge.endDate)
+    return endDate <= new Date()
+  }) || []
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -72,7 +45,7 @@ export default function MyChallengesPage() {
             <Clock className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{userStats.activeChallenges}</div>
+            <div className="text-2xl font-bold text-gray-900">{activeChallenges.length}</div>
             <p className="text-xs text-gray-700">Keep the momentum going!</p>
           </CardContent>
         </Card>
@@ -83,8 +56,8 @@ export default function MyChallengesPage() {
             <TrendingUp className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{userStats.currentStreak} days</div>
-            <p className="text-xs text-gray-700">No Coffee November 🏆</p>
+            <div className="text-2xl font-bold text-gray-900">{userStats?.currentStreak || 0} days</div>
+            <p className="text-xs text-gray-700">Keep it up! 🔥</p>
           </CardContent>
         </Card>
 
@@ -94,7 +67,7 @@ export default function MyChallengesPage() {
             <CheckCircle className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{userStats.completedChallenges}</div>
+            <div className="text-2xl font-bold text-gray-900">{completedChallenges.length}</div>
             <p className="text-xs text-gray-700">Total achievements</p>
           </CardContent>
         </Card>
@@ -105,9 +78,7 @@ export default function MyChallengesPage() {
             <TrendingUp className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">
-              {Math.round((userStats.completedChallenges / userStats.totalChallenges) * 100)}%
-            </div>
+            <div className="text-2xl font-bold text-gray-900">{userStats?.successRate || 0}%</div>
             <p className="text-xs text-gray-700">Completion rate</p>
           </CardContent>
         </Card>
@@ -126,14 +97,14 @@ export default function MyChallengesPage() {
         </div>
 
         {activeChallenges.length > 0 ? (
-          activeChallenges.map((challenge) => (
-            <Card key={challenge.id} className="hover:shadow-lg transition-shadow">
+          activeChallenges.map((challenge: Challenge) => (
+            <Card key={challenge._id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <h3 className="text-xl font-semibold text-gray-900">{challenge.title}</h3>
-                      {challenge.role === "creator" && (
+                      {challenge.createdBy === userId && (
                         <Badge variant="outline" className="text-xs">
                           Creator
                         </Badge>
@@ -142,40 +113,29 @@ export default function MyChallengesPage() {
                     </div>
                     <p className="text-gray-700">{challenge.description}</p>
                   </div>
-                  <Button variant="outline" size="sm">
-                    View Details
-                  </Button>
+                  <Link href={`/challenges/${challenge._id}`}>
+                    <Button variant="outline" size="sm">
+                      View Details
+                    </Button>
+                  </Link>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-700">Progress</span>
-                    <span className="font-medium text-gray-900">{challenge.progress}%</span>
-                  </div>
-                  <Progress value={challenge.progress} />
-                </div>
-
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div className="flex items-center space-x-2">
-                    <Flame className="h-4 w-4 text-orange-500" />
+                    <Users className="h-4 w-4 text-green-500" />
                     <div>
-                      <p className="font-medium text-gray-900">{challenge.currentStreak}</p>
-                      <p className="text-gray-700">Day streak</p>
+                      <p className="font-medium text-gray-900">{challenge.participants.length}</p>
+                      <p className="text-gray-700">Participants</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-blue-500" />
                     <div>
-                      <p className="font-medium text-gray-900">{challenge.totalDays - Math.floor(challenge.progress * challenge.totalDays / 100)}</p>
+                      <p className="font-medium text-gray-900">
+                        {Math.max(0, Math.ceil((new Date(challenge.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}
+                      </p>
                       <p className="text-gray-700">Days left</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Users className="h-4 w-4 text-green-500" />
-                    <div>
-                      <p className="font-medium text-gray-900">{challenge.participants}</p>
-                      <p className="text-gray-700">Participants</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -183,6 +143,13 @@ export default function MyChallengesPage() {
                     <div>
                       <p className="font-medium text-gray-900">{new Date(challenge.endDate).toLocaleDateString()}</p>
                       <p className="text-gray-700">End date</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Flame className="h-4 w-4 text-orange-500" />
+                    <div>
+                      <p className="font-medium text-gray-900">Active</p>
+                      <p className="text-gray-700">Status</p>
                     </div>
                   </div>
                 </div>
@@ -214,14 +181,14 @@ export default function MyChallengesPage() {
         <h2 className="text-2xl font-bold text-gray-900">Completed Challenges ({completedChallenges.length})</h2>
 
         {completedChallenges.length > 0 ? (
-          completedChallenges.map((challenge) => (
-            <Card key={challenge.id} className="hover:shadow-lg transition-shadow">
+          completedChallenges.map((challenge: Challenge) => (
+            <Card key={challenge._id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <h3 className="text-xl font-semibold text-gray-900">{challenge.title}</h3>
-                      {challenge.role === "creator" && (
+                      {challenge.createdBy === userId && (
                         <Badge variant="outline" className="text-xs">
                           Creator
                         </Badge>
@@ -234,9 +201,11 @@ export default function MyChallengesPage() {
                     </div>
                     <p className="text-gray-700">{challenge.description}</p>
                   </div>
-                  <Button variant="outline" size="sm">
-                    View Details
-                  </Button>
+                  <Link href={`/challenges/${challenge._id}`}>
+                    <Button variant="outline" size="sm">
+                      View Details
+                    </Button>
+                  </Link>
                 </div>
               </CardHeader>
               <CardContent>
@@ -244,29 +213,29 @@ export default function MyChallengesPage() {
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="h-4 w-4 text-gray-700" />
                     <div>
-                      <p className="font-medium text-gray-900">{challenge.finalStreak}</p>
-                      <p className="text-gray-700">Final streak</p>
+                      <p className="font-medium text-gray-900">Completed</p>
+                      <p className="text-gray-700">Status</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-blue-500" />
                     <div>
-                      <p className="font-medium text-gray-900">{challenge.totalDays}</p>
-                      <p className="text-gray-700">Total days</p>
+                      <p className="font-medium text-gray-900">{new Date(challenge.endDate).toLocaleDateString()}</p>
+                      <p className="text-gray-700">Ended</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Users className="h-4 w-4 text-green-500" />
                     <div>
-                      <p className="font-medium text-gray-900">{challenge.participants}</p>
+                      <p className="font-medium text-gray-900">{challenge.participants.length}</p>
                       <p className="text-gray-700">Participants</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Target className="h-4 w-4 text-purple-500" />
                     <div>
-                      <p className="font-medium text-gray-900">{new Date(challenge.completionDate).toLocaleDateString()}</p>
-                      <p className="text-gray-700">Completed</p>
+                      <p className="font-medium text-gray-900">{challenge.category}</p>
+                      <p className="text-gray-700">Category</p>
                     </div>
                   </div>
                 </div>

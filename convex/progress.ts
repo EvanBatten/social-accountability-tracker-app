@@ -111,6 +111,18 @@ export const getChallengeStats = query({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
+    // Get the challenge to calculate total days
+    const challenge = await ctx.db.get(args.challengeId);
+    if (!challenge) {
+      return {
+        totalDays: 0,
+        completedDays: 0,
+        percentage: 0,
+        currentStreak: 0,
+        progress: [],
+      };
+    }
+
     const progress = await ctx.db
       .query("challengeProgress")
       .filter((q) => 
@@ -123,8 +135,13 @@ export const getChallengeStats = query({
       .collect();
 
     const completed = progress.filter(p => p.status === "completed").length;
-    const total = progress.length;
-    const percentage = total > 0 ? (completed / total) * 100 : 0;
+    
+    // Calculate total days in the challenge
+    const startDate = new Date(challenge.startDate);
+    const endDate = new Date(challenge.endDate);
+    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    
+    const percentage = totalDays > 0 ? (completed / totalDays) * 100 : 0;
 
     // Calculate current streak
     let currentStreak = 0;
@@ -139,7 +156,7 @@ export const getChallengeStats = query({
     }
 
     return {
-      totalDays: total,
+      totalDays,
       completedDays: completed,
       percentage,
       currentStreak,

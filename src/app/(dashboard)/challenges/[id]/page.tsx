@@ -11,85 +11,98 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Calendar, Users, TrendingUp, CheckCircle, MessageCircle, Heart, Share2, Trophy, Flame } from "lucide-react"
 import { format } from "date-fns"
+import { useUser } from "@clerk/nextjs";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useParams } from "next/navigation";
+import { Challenge, ChallengeProgress, ChallengeStats, ProgressFeedItem } from "@/types";
+import { ChallengeDetailSkeleton } from "@/components/ui/loading";
+import { getUserDisplayName, getUserInitials } from "@/utils/user-helpers";
 
-// Mock data - replace with Convex queries
-const challengeData = {
-  id: "1",
-  title: "30-Day Morning Meditation",
-  description:
-    "Start each day with 10 minutes of mindfulness meditation to improve focus, reduce stress, and cultivate inner peace. This challenge will help you build a sustainable morning routine.",
-  category: "Wellness & Mindfulness",
-  createdBy: {
-    name: "Sarah Chen",
-    avatar: "/placeholder-user.jpg",
-    id: "user1",
-  },
-  startDate: "2024-01-01",
-  endDate: "2024-01-30",
-  participants: 24,
-  isPublic: true,
-  hasJoined: true,
-  currentStreak: 12,
-  totalDays: 30,
-  completedDays: 12,
-  status: "active",
-}
-
-const progressLogs = [
-  {
-    id: "1",
-    date: "2024-01-15",
-    user: { name: "You", avatar: "/placeholder-user.jpg" },
-    status: "completed",
-    note: "Great session today! Feeling more centered and focused.",
-    likes: 3,
-    comments: 1,
-  },
-  {
-    id: "2",
-    date: "2024-01-15",
-    user: { name: "Mike Johnson", avatar: "/placeholder-user.jpg" },
-    status: "completed",
-    note: "10 minutes of breathing meditation. Already feeling the benefits!",
-    likes: 5,
-    comments: 2,
-  },
-  {
-    id: "3",
-    date: "2024-01-14",
-    user: { name: "Emma Wilson", avatar: "/placeholder-user.jpg" },
-    status: "missed",
-    note: "Overslept today, but getting back on track tomorrow!",
-    likes: 2,
-    comments: 3,
-  },
-]
-
-const participants = [
-  { name: "Sarah Chen", avatar: "/placeholder-user.jpg", streak: 15, role: "creator" },
-  { name: "Mike Johnson", avatar: "/placeholder-user.jpg", streak: 12 },
-  { name: "Emma Wilson", avatar: "/placeholder-user.jpg", streak: 8 },
-  { name: "Alex Rodriguez", avatar: "/placeholder-user.jpg", streak: 14 },
-  { name: "Lisa Park", avatar: "/placeholder-user.jpg", streak: 10 },
-]
-
-export default function ChallengeDetailPage({ params }: { params: { id: string } }) {
+export default function ChallengeDetailPage() {
+  const { user } = useUser();
+  const params = useParams()
+  const challengeId = params.id as string
+  
   const [todayStatus, setTodayStatus] = useState("")
   const [todayNote, setTodayNote] = useState("")
   const [hasLoggedToday, setHasLoggedToday] = useState(false)
 
+  // Fetch real data from Convex
+  const challenge = useQuery(api.challenges.getChallenge, { challengeId: challengeId as any }) as Challenge | undefined
+  const userProgress = useQuery(
+    api.progress.getChallengeProgress, 
+    challengeId && user?.id ? { challengeId: challengeId as any, userId: user.id } : "skip"
+  ) as ChallengeProgress[] | undefined
+  const progressFeed = useQuery(
+    api.progress.getChallengeProgressFeed, 
+    challengeId ? { challengeId: challengeId as any } : "skip"
+  ) as ProgressFeedItem[] | undefined
+  const challengeStats = useQuery(
+    api.progress.getChallengeStats, 
+    challengeId && user?.id ? { challengeId: challengeId as any, userId: user.id } : "skip"
+  ) as ChallengeStats | undefined
+
+  const logProgress = useMutation(api.progress.logProgress)
+  const joinChallenge = useMutation(api.challenges.joinChallenge)
+  const leaveChallenge = useMutation(api.challenges.leaveChallenge)
+
   const handleLogProgress = async () => {
-    if (!todayStatus) return
+    if (!todayStatus || !user?.id || !challengeId) return
 
-    // Here you would use Convex mutation to log progress
-    console.log("Logging progress:", { status: todayStatus, note: todayNote })
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      await logProgress({
+        challengeId: challengeId as any,
+        userId: user.id,
+        date: today,
+        status: todayStatus as any,
+        note: todayNote || undefined,
+      })
 
-    setHasLoggedToday(true)
-    setTodayStatus("")
-    setTodayNote("")
+      setHasLoggedToday(true)
+      setTodayStatus("")
+      setTodayNote("")
+      // Show success message
+      alert("Progress logged successfully!")
+    } catch (error) {
+      console.error("Failed to log progress:", error)
+      alert("Failed to log progress. Please try again.")
+    }
   }
 
-  const progressPercentage = (challengeData.completedDays / challengeData.totalDays) * 100
+  const handleJoinChallenge = async () => {
+    if (!user?.id || !challengeId) return
+    try {
+      await joinChallenge({ challengeId: challengeId as any, userId: user.id })
+      alert("Successfully joined challenge!")
+    } catch (error) {
+      console.error("Failed to join challenge:", error)
+      alert("Failed to join challenge. Please try again.")
+    }
+  }
+
+  const handleLeaveChallenge = async () => {
+    if (!user?.id || !challengeId) return
+    try {
+      await leaveChallenge({ challengeId: challengeId as any, userId: user.id })
+      alert("Successfully left challenge!")
+    } catch (error) {
+      console.error("Failed to leave challenge:", error)
+      alert("Failed to leave challenge. Please try again.")
+    }
+  }
+
+  if (!challenge) {
+    return <ChallengeDetailSkeleton />
+  }
+
+  const isParticipant = challenge.participants.includes(user?.id || "")
+  const progressPercentage = challengeStats && challengeStats.totalDays > 0 
+    ? (challengeStats.completedDays / challengeStats.totalDays) * 100 
+    : 0
+  const today = new Date().toISOString().split('T')[0]
+  const userHasLoggedToday = userProgress?.some((p: ChallengeProgress) => p.date === today)
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -98,16 +111,16 @@ export default function ChallengeDetailPage({ params }: { params: { id: string }
         <div className="flex items-start justify-between mb-4">
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              <h1 className="text-3xl font-bold text-gray-900">{challengeData.title}</h1>
-              <Badge>{challengeData.category}</Badge>
+              <h1 className="text-3xl font-bold text-gray-900">{challenge.title}</h1>
+              <Badge>{challenge.category}</Badge>
             </div>
-            <p className="text-gray-700 max-w-3xl">{challengeData.description}</p>
+            <p className="text-gray-700 max-w-3xl">{challenge.description}</p>
             <div className="flex items-center space-x-4 text-sm text-gray-700">
-              <span>Created by {challengeData.createdBy.name}</span>
+              <span>Created by {getUserDisplayName(challenge.createdBy, user)}</span>
               <span>•</span>
               <span>
-                {format(new Date(challengeData.startDate), "MMM d")} -{" "}
-                {format(new Date(challengeData.endDate), "MMM d, yyyy")}
+                {format(new Date(challenge.startDate), "MMM d")} -{" "}
+                {format(new Date(challenge.endDate), "MMM d, yyyy")}
               </span>
             </div>
           </div>
@@ -116,7 +129,11 @@ export default function ChallengeDetailPage({ params }: { params: { id: string }
               <Share2 className="h-4 w-4 mr-2" />
               Share
             </Button>
-            {!challengeData.hasJoined && <Button>Join Challenge</Button>}
+            {!isParticipant ? (
+              <Button onClick={handleJoinChallenge}>Join Challenge</Button>
+            ) : (
+              <Button variant="outline" onClick={handleLeaveChallenge}>Leave Challenge</Button>
+            )}
           </div>
         </div>
 
@@ -140,7 +157,7 @@ export default function ChallengeDetailPage({ params }: { params: { id: string }
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold flex items-center text-gray-900">
-                {challengeData.currentStreak}
+                {challengeStats?.currentStreak || 0}
                 <span className="text-sm font-normal ml-1">days</span>
               </div>
               <p className="text-xs text-gray-700">Keep it going! 🔥</p>
@@ -153,7 +170,7 @@ export default function ChallengeDetailPage({ params }: { params: { id: string }
               <Users className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{challengeData.participants}</div>
+              <div className="text-2xl font-bold text-gray-900">{challenge.participants.length}</div>
               <p className="text-xs text-gray-700">Active members</p>
             </CardContent>
           </Card>
@@ -164,7 +181,9 @@ export default function ChallengeDetailPage({ params }: { params: { id: string }
               <Calendar className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{challengeData.totalDays - challengeData.completedDays}</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {Math.max(0, Math.ceil((new Date(challenge.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}
+              </div>
               <p className="text-xs text-gray-700">Until completion</p>
             </CardContent>
           </Card>
@@ -175,14 +194,14 @@ export default function ChallengeDetailPage({ params }: { params: { id: string }
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Log Today's Progress */}
-          {challengeData.hasJoined && !hasLoggedToday && (
+          {isParticipant && !userHasLoggedToday && (
             <Card className="border-blue-200 bg-blue-50">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-gray-900">
                   <CheckCircle className="h-5 w-5 text-blue-600" />
                   <span>Log Today's Progress</span>
                 </CardTitle>
-                <CardDescription className="text-gray-700">How did you do with your meditation today?</CardDescription>
+                <CardDescription className="text-gray-700">How did you do with your challenge today?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -217,7 +236,7 @@ export default function ChallengeDetailPage({ params }: { params: { id: string }
             </Card>
           )}
 
-          {hasLoggedToday && (
+          {userHasLoggedToday && (
             <Card className="border-green-200 bg-green-50">
               <CardContent className="pt-6">
                 <div className="flex items-center space-x-2 text-green-800">
@@ -235,43 +254,49 @@ export default function ChallengeDetailPage({ params }: { params: { id: string }
               <CardDescription className="text-gray-700">See how everyone is doing with their daily progress</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {progressLogs.map((log) => (
-                <div key={log.id} className="flex space-x-4">
-                  <Avatar>
-                    <AvatarImage src={log.user.avatar || "/placeholder.svg"} />
-                    <AvatarFallback>{log.user.name[0]}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-medium text-gray-900">{log.user.name}</span>
-                      <Badge
-                        variant={
-                          log.status === "completed"
-                            ? "default"
-                            : log.status === "partial"
-                            ? "secondary"
-                            : "destructive"
-                        }
-                        className="text-xs"
-                      >
-                        {log.status === "completed" ? "Completed" : log.status === "partial" ? "Partial" : "Missed"}
-                      </Badge>
-                      <span className="text-xs text-gray-700">{format(new Date(log.date), "MMM d")}</span>
-                    </div>
-                    <p className="text-gray-700">{log.note}</p>
-                    <div className="flex items-center space-x-4 text-sm">
-                      <button className="flex items-center space-x-1 text-gray-700 hover:text-gray-900">
-                        <Heart className="h-4 w-4" />
-                        <span>{log.likes}</span>
-                      </button>
-                      <button className="flex items-center space-x-1 text-gray-700 hover:text-gray-900">
-                        <MessageCircle className="h-4 w-4" />
-                        <span>{log.comments}</span>
-                      </button>
+              {progressFeed && progressFeed.length > 0 ? (
+                progressFeed.map((log: ProgressFeedItem) => (
+                  <div key={log._id} className="flex space-x-4">
+                    <Avatar>
+                      <AvatarImage src="/placeholder-user.jpg" />
+                      <AvatarFallback>{getUserInitials(log.userId, user)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium text-gray-900">{getUserDisplayName(log.userId, user)}</span>
+                        <Badge
+                          variant={
+                            log.status === "completed"
+                              ? "default"
+                              : log.status === "partial"
+                              ? "secondary"
+                              : "destructive"
+                          }
+                          className="text-xs"
+                        >
+                          {log.status === "completed" ? "Completed" : log.status === "partial" ? "Partial" : "Missed"}
+                        </Badge>
+                        <span className="text-xs text-gray-700">{format(new Date(log.date), "MMM d")}</span>
+                      </div>
+                      {log.note && <p className="text-gray-700">{log.note}</p>}
+                      <div className="flex items-center space-x-4 text-sm">
+                        <button className="flex items-center space-x-1 text-gray-700 hover:text-gray-900">
+                          <Heart className="h-4 w-4" />
+                          <span>0</span>
+                        </button>
+                        <button className="flex items-center space-x-1 text-gray-700 hover:text-gray-900">
+                          <MessageCircle className="h-4 w-4" />
+                          <span>0</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-700">No progress logged yet. Be the first to share your progress!</p>
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
         </div>
@@ -285,16 +310,16 @@ export default function ChallengeDetailPage({ params }: { params: { id: string }
               <CardDescription className="text-gray-700">See who's joining you on this journey</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {participants.map((participant, index) => (
+              {challenge.participants.map((participantId: string, index: number) => (
                 <div key={index} className="flex items-center space-x-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={participant.avatar} />
-                    <AvatarFallback className="text-xs">{participant.name[0]}</AvatarFallback>
+                    <AvatarImage src="/placeholder-user.jpg" />
+                    <AvatarFallback className="text-xs">{getUserInitials(participantId, user)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <p className="text-sm font-medium text-gray-900 truncate">{participant.name}</p>
-                      {participant.role === "creator" && (
+                      <p className="text-sm font-medium text-gray-900 truncate">{getUserDisplayName(participantId, user)}</p>
+                      {participantId === challenge.createdBy && (
                         <Badge variant="outline" className="text-xs">
                           Creator
                         </Badge>
@@ -302,7 +327,7 @@ export default function ChallengeDetailPage({ params }: { params: { id: string }
                     </div>
                     <div className="flex items-center space-x-1 text-xs text-gray-700">
                       <Flame className="h-3 w-3 text-orange-500" />
-                      <span>{participant.streak} day streak</span>
+                      <span>Active</span>
                     </div>
                   </div>
                 </div>
@@ -317,16 +342,18 @@ export default function ChallengeDetailPage({ params }: { params: { id: string }
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Average completion rate</span>
-                <span className="text-sm font-medium text-gray-900">78%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Longest streak</span>
-                <span className="text-sm font-medium text-gray-900">15 days</span>
-              </div>
-              <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700">Total check-ins</span>
-                <span className="text-sm font-medium text-gray-900">1,247</span>
+                <span className="text-sm font-medium text-gray-900">{progressFeed?.length || 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700">Challenge duration</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {Math.ceil((new Date(challenge.endDate).getTime() - new Date(challenge.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1} days
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700">Completion rate</span>
+                <span className="text-sm font-medium text-gray-900">{Math.round(progressPercentage)}%</span>
               </div>
             </CardContent>
           </Card>

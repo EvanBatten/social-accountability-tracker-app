@@ -28,13 +28,13 @@ export function LandingPage() {
           <SignedIn>
             <div className="flex items-center space-x-4">
               <Link href="/dashboard">
-                <Button variant="ghost">Dashboard</Button>
+                <Button variant="ghost" className="text-gray-700">Dashboard</Button>
               </Link>
               <Link href="/challenges/create">
-                <Button>Create Challenge</Button>
+                <Button variant="outline" className="bg-transparent border-gray-300 text-gray-700 hover:bg-gray-50">Create Challenge</Button>
               </Link>
               <Link href="/profile">
-                <Button variant="outline">Profile</Button>
+                <Button variant="outline" className="bg-transparent border-gray-300 text-gray-700 hover:bg-gray-50">Profile</Button>
               </Link>
             </div>
           </SignedIn>
@@ -73,12 +73,12 @@ export function LandingPage() {
           <SignedIn>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/dashboard">
-                <Button size="lg" className="text-lg px-8 py-3">
+                <Button size="lg" className="text-lg px-8 py-3 text-gray-900">
                   Go to Dashboard
                 </Button>
               </Link>
               <Link href="/challenges/create">
-                <Button size="lg" variant="outline" className="text-lg px-8 py-3">
+                <Button size="lg" variant="outline" className="text-lg px-8 py-3 bg-transparent border-gray-300 text-gray-700 hover:bg-gray-50">
                   Create Challenge
                 </Button>
               </Link>
@@ -210,7 +210,7 @@ export function LandingPage() {
           </SignedOut>
           <SignedIn>
             <Link href="/dashboard">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
+              <Button size="lg" variant="secondary" className="text-lg px-8 py-3 text-gray-900">
                 Go to Dashboard
               </Button>
             </Link>

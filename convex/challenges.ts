@@ -35,11 +35,10 @@ export const getUserParticipatingChallenges = query({
   handler: async (ctx, args) => {
     const challenges = await ctx.db
       .query("challenges")
-      .filter((q) => q.eq(q.field("participants"), [args.userId]))
-      .order("desc")
       .collect();
 
-    return challenges;
+    // Filter in JavaScript since Convex doesn't support array.contains() in queries
+    return challenges.filter(challenge => challenge.participants.includes(args.userId));
   },
 });
 

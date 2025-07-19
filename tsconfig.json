@@ -6,9 +6,9 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/convex/*": ["./convex/*"]
     },
-    
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
