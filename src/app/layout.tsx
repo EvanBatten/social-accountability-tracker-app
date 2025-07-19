@@ -2,8 +2,9 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { ClerkProvider, SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs"
+import { SignInButton, SignUpButton, SignedOut } from "@clerk/nextjs"
 import { ConvexProvider } from "@/app/convex-provider"
+import { SafeClerkProvider } from "@/components/safe-clerk-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -18,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider>
+    <SafeClerkProvider>
       <html lang="en">
         <body className={inter.className}>
           <SignedOut>
@@ -34,6 +35,6 @@ export default function RootLayout({
           <ConvexProvider>{children}</ConvexProvider>
         </body>
       </html>
-    </ClerkProvider>
+    </SafeClerkProvider>
   )
 }

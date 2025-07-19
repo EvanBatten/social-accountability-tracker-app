@@ -2,6 +2,16 @@
 
 A modern web application for tracking habits and goals with social accountability, built with Next.js, Clerk authentication, and Convex database.
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-View%20App-blue?style=for-the-badge&logo=vercel)](https://your-app-name.vercel.app)
+[![Deploy on Vercel](https://img.shields.io/badge/Deploy%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/new/clone?repository-url=https://github.com/EvanBatten/test)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
+## 🌐 Live Demo
+
+**Try the app live:** [https://your-app-name.vercel.app](https://your-app-name.vercel.app)
+
+> ⚠️ **Note:** Replace `your-app-name` with your actual Vercel app name in the URL above.
+
 ## 🚀 Features
 
 - **User Authentication** - Secure login/signup with Clerk
@@ -13,11 +23,19 @@ A modern web application for tracking habits and goals with social accountabilit
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Authentication**: Clerk
-- **Database**: Convex
-- **Styling**: Tailwind CSS, Radix UI
-- **Deployment**: Vercel (recommended)
+![Next.js](https://img.shields.io/badge/Next.js-15.4.1-black?style=flat-square&logo=next.js)
+![React](https://img.shields.io/badge/React-19.1.0-blue?style=flat-square&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue?style=flat-square&logo=typescript)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1.11-38B2AC?style=flat-square&logo=tailwind-css)
+![Clerk](https://img.shields.io/badge/Clerk-Authentication-6C47FF?style=flat-square)
+![Convex](https://img.shields.io/badge/Convex-Database-00D4AA?style=flat-square)
+![Vercel](https://img.shields.io/badge/Vercel-Deployment-black?style=flat-square&logo=vercel)
+
+**Frontend:** Next.js 15, React 19, TypeScript  
+**Authentication:** Clerk  
+**Database:** Convex  
+**Styling:** Tailwind CSS, Radix UI  
+**Deployment:** Vercel
 
 ## 📋 Prerequisites
 
@@ -80,26 +98,53 @@ NEXT_PUBLIC_CONVEX_URL=your_convex_deployment_url_here
 5. **Open your browser:**
    Navigate to [http://localhost:3000](http://localhost:3000)
 
+## 📸 Screenshots
+
+<details>
+<summary>Click to view screenshots</summary>
+
+### Dashboard
+![Dashboard showing challenge templates and user stats](screenshots/dashboard.png)
+
+### Challenge Creation
+![Create challenge form with template pre-fill](screenshots/create-challenge.png)
+
+### Progress Tracking
+![Challenge detail page with progress logging](screenshots/progress-tracking.png)
+
+### User Profile
+![User profile with challenge history and stats](screenshots/profile.png)
+
+</details>
+
 ## 🌐 Deployment
 
 ### Vercel (Recommended)
 
-1. **Push to GitHub:**
-   ```bash
-   git add .
-   git commit -m "Initial commit"
-   git push origin main
-   ```
+This app is already deployed on Vercel! 🚀
+
+**Live URL:** [https://your-app-name.vercel.app](https://your-app-name.vercel.app)
+
+### Deploy Your Own Copy
+
+1. **Fork this repository**
 
 2. **Deploy on Vercel:**
    - Go to [vercel.com](https://vercel.com)
-   - Import your GitHub repository
-   - Add environment variables in Vercel dashboard
+   - Click "New Project"
+   - Import your forked repository
+   - Set **Root Directory** to `web-app`
+   - Add environment variables (see below)
    - Deploy!
 
 ### Environment Variables in Vercel:
 - Go to your project settings
-- Add the same environment variables from your `.env.local`
+- Add these environment variables:
+  ```
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_key
+  CLERK_SECRET_KEY=sk_test_your_key
+  NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
+  ```
 - Redeploy after adding variables
 
 ## 🔒 Security Notes
