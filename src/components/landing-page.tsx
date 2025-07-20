@@ -65,9 +65,11 @@ export function LandingPage() {
                   Start Your Journey
                 </Button>
               </SignUpButton>
-              <Button size="lg" className="text-lg px-8 py-3">
-                See How It Works
-              </Button>
+              <SignUpButton mode="modal">
+                <Button size="lg" className="text-lg px-8 py-3">
+                  See How It Works
+                </Button>
+              </SignUpButton>
             </div>
           </SignedOut>
           <SignedIn>
