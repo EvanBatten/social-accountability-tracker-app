@@ -65,7 +65,7 @@ export function LandingPage() {
                   Start Your Journey
                 </Button>
               </SignUpButton>
-              <Button size="lg" variant="outline" className="text-lg px-8 py-3 bg-transparent">
+              <Button size="lg" className="text-lg px-8 py-3">
                 See How It Works
               </Button>
             </div>
